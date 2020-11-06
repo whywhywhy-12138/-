@@ -7,7 +7,19 @@ import cv2
 from PIL import Image, ImageTk
 
 from reco import recognition
+from colllect import collect
 
+lk = threading.Lock()
+
+def video_thread(self):
+    self.th_run = True
+    self.con = 1
+    self.train_weight.configure(state='disable')
+    self.recog_weight.configure(state='active')
+    while self.con == 1:
+        _, img_bgr = self.cam.read()  # 读取照片
+        self.imgtk = self.get_imgtk(img_bgr)
+        self.video_weight.configure(image=self.imgtk, width=600, height=480)
 
 class Application(ttk.Frame):
     cam=None
@@ -22,11 +34,8 @@ class Application(ttk.Frame):
         self.master = master
         self.pack()
         self.create_weight()
-        #self.video_display()
-
-    def setcon(self,c):
-        self.con=c
-        print(4)
+        self.cam_init()
+        self.video_display()
 
     def create_weight(self):
         self.video_weight = tk.Label(self,
@@ -53,7 +62,7 @@ class Application(ttk.Frame):
         self.recog_weight = tk.Button(self.frame_weight,
                                       text='人脸识别',
                                       width='10',
-                                      command=lambda:self.setcon(4))
+                                      command=self.reco_th)
         self.recog_weight.grid(column=0, row=3, padx=8, pady=4)
 
         self.del_weight = tk.Button(self.frame_weight,
@@ -75,7 +84,7 @@ class Application(ttk.Frame):
         self.frame_left = tk.Frame(self.input_win)
         self.frame_left.grid(row=0, column=0, padx=5, pady=10)
 
-        self.bt_right = tk.Button(self.input_win, text='提交数据', width='10', height='2')
+        self.bt_right = tk.Button(self.input_win, text='提交数据', width='10', height='2',command=self.collect_th)
         self.bt_right.grid(row=0, column=1, padx=5, pady=10)
 
         self.bianhao = tk.Label(self.frame_left,
@@ -92,27 +101,11 @@ class Application(ttk.Frame):
         self.input_name = tk.Entry(self.frame_left)
         self.input_name.grid(row=1, column=1)
 
-    def video_display(self):
-        if self.th_run:
-            return
-        if self.cam is None:
-            self.cam = cv2.VideoCapture(0)
-            if not self.cam.isOpened():
-                mBox.showwarning('警告', '摄像头打开失败！')
-                self.cam = None
-                return
-        self.th = threading.Thread(target=self.video_thread, args=(self,))
-        self.th.setDaemon(True)
-        self.th.start()
-        self.th_run = True
-
     def get_imgtk(self, img_bgr):
-        img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-        if self.con==4:
-            img=recognition(img)
-        im = Image.fromarray(img)
+        self.img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        im = Image.fromarray(self.img)
         imgtk = ImageTk.PhotoImage(image=im)
-        '''wide = imgtk.width()
+        wide = imgtk.width()
         high = imgtk.height()
         if wide > self.viewwide or high > self.viewhigh:
             wide_factor = self.viewwide / wide
@@ -123,22 +116,42 @@ class Application(ttk.Frame):
             high = int(high * factor)
             if high <= 0: high = 1
             im = im.resize((wide, high), Image.ANTIALIAS)
-            imgtk = ImageTk.PhotoImage(image=im)'''
+            imgtk = ImageTk.PhotoImage(image=im)
         return imgtk
 
-    @staticmethod
-    def video_thread(self):
+    def cam_init(self):
+        if self.th_run:
+            return
+        if self.cam is None:
+            self.cam = cv2.VideoCapture(0)
+            if not self.cam.isOpened():
+                mBox.showwarning('警告', '摄像头打开失败！')
+                self.cam = None
+                return
+
+    def video_display(self):
+        self.th = threading.Thread(target=video_thread, args=(self,))
+        self.th.setDaemon(True)
+        self.th.start()
         self.th_run = True
-        while self.th_run:
-            _, img_bgr = self.cam.read()  # 读取照片
-            self.imgtk = self.get_imgtk(img_bgr)
-            self.video_weight.configure(image=self.imgtk, width=600, height=480)
+
+    def collect_th(self):
+        self.co_th = threading.Thread(target=collect, args=(self,))
+        self.co_th.setDaemon(True)
+        self.co_th.start()
+        self.th_run = True
+
+    def reco_th(self):
+        self.re_th = threading.Thread(target=recognition, args=(self,))
+        self.re_th.setDaemon(True)
+        self.re_th.start()
+        self.th_run = True
 
 def on_closing():
     print("destroy")
-    if app.th_run:
+    '''if app.th_run:
         app.th_run = False
-        app.th.join(1)
+        app.th.join(1)'''
     window.destroy()
 
 
