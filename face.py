@@ -1,22 +1,38 @@
-from recognition import recognition
-from training import training
-from datasets import datasets
-
-from delFile import del_file
-
+import threading
 import tkinter as tk
+from tkinter import messagebox as mBox
+from tkinter import ttk
+
+import cv2
+from PIL import Image, ImageTk
+
+from reco import recognition
 
 
-class Application(tk.Frame):
+class Application(ttk.Frame):
+    cam=None
+    th_run = False
+    th = None
+    viewhigh = 600
+    viewwide = 600
+    con=0
+
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
         self.pack()
-        self.create_widgets()
+        self.create_weight()
+        #self.video_display()
 
-    def create_widgets(self):
+    def setcon(self,c):
+        self.con=c
+        print(4)
+
+    def create_weight(self):
         self.video_weight = tk.Label(self,
-                                     bg='blue', width='80', height='25')
+                                     width=80,
+                                     height=25,
+                                     bg='gray')
         self.video_weight.pack(side="left")
 
         self.frame_weight = tk.LabelFrame(self)
@@ -30,12 +46,14 @@ class Application(tk.Frame):
 
         self.train_weight = tk.Button(self.frame_weight,
                                       text='人脸训练',
-                                      width='10')
+                                      width='10',
+                                      command=self.video_display)
         self.train_weight.grid(column=0, row=2, padx=8, pady=4)
 
         self.recog_weight = tk.Button(self.frame_weight,
                                       text='人脸识别',
-                                      width='10')
+                                      width='10',
+                                      command=lambda:self.setcon(4))
         self.recog_weight.grid(column=0, row=3, padx=8, pady=4)
 
         self.del_weight = tk.Button(self.frame_weight,
@@ -52,69 +70,82 @@ class Application(tk.Frame):
         self.log_text.grid(column=0, row=6, ipadx=8, pady=4, ipady=4)
 
     def create_input_win(self):
-        self.input_win=tk.Toplevel(self)
+        self.input_win = tk.Toplevel(self)
 
-        self.frame_left=tk.Frame(self.input_win)
-        self.frame_left.grid(row=0, column=0,padx=5,pady=10)
+        self.frame_left = tk.Frame(self.input_win)
+        self.frame_left.grid(row=0, column=0, padx=5, pady=10)
 
-        self.bt_right=tk.Button(self.input_win,text='提交数据',width='10',height='2')
-        self.bt_right.grid(row=0, column=1,padx=5,pady=10)
+        self.bt_right = tk.Button(self.input_win, text='提交数据', width='10', height='2')
+        self.bt_right.grid(row=0, column=1, padx=5, pady=10)
 
-        self.bianhao=tk.Label(self.frame_left,
-                              text='编号')
-        self.bianhao.grid(row=0,column=0)
+        self.bianhao = tk.Label(self.frame_left,
+                                text='编号')
+        self.bianhao.grid(row=0, column=0)
 
         self.input_bianhao = tk.Entry(self.frame_left)
         self.input_bianhao.grid(row=0, column=1)
 
         self.name = tk.Label(self.frame_left,
-                                text='名字')
-        self.name.grid(row=1,column=0)
+                             text='名字')
+        self.name.grid(row=1, column=0)
 
         self.input_name = tk.Entry(self.frame_left)
         self.input_name.grid(row=1, column=1)
 
+    def video_display(self):
+        if self.th_run:
+            return
+        if self.cam is None:
+            self.cam = cv2.VideoCapture(0)
+            if not self.cam.isOpened():
+                mBox.showwarning('警告', '摄像头打开失败！')
+                self.cam = None
+                return
+        self.th = threading.Thread(target=self.video_thread, args=(self,))
+        self.th.setDaemon(True)
+        self.th.start()
+        self.th_run = True
 
-def main():
-    facedict = {}
-    cur_path = r'./dataset/'
-    while True:
-        print('*' * 31)
-        print('''
-            opencv人脸识别
-            --------------
-            输入1,人脸采集
-            输入2,人脸训练
-            输入3,人脸识别
-            输入d,删除数据
-            输入q,退出程序      
-        ''')
-        print('*' * 31)
-        num = input("请输入您的操作选择: ")
-        if num == '1':
-            mydict = datasets()
-            facedict.update(mydict)
-            print(facedict)
-        elif num == '2':
-            training()
-        elif num == '3':
-            recognition(facedict)
-        elif num == 'd':
-            del_file(cur_path)
-        elif num == 'q':
-            print("退出程序成功!")
-            break
-        else:
-            print("您输入有误,请重新输入!")
+    def get_imgtk(self, img_bgr):
+        img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        if self.con==4:
+            img=recognition(img)
+        im = Image.fromarray(img)
+        imgtk = ImageTk.PhotoImage(image=im)
+        '''wide = imgtk.width()
+        high = imgtk.height()
+        if wide > self.viewwide or high > self.viewhigh:
+            wide_factor = self.viewwide / wide
+            high_factor = self.viewhigh / high
+            factor = min(wide_factor, high_factor)
+            wide = int(wide * factor)
+            if wide <= 0: wide = 1
+            high = int(high * factor)
+            if high <= 0: high = 1
+            im = im.resize((wide, high), Image.ANTIALIAS)
+            imgtk = ImageTk.PhotoImage(image=im)'''
+        return imgtk
 
+    @staticmethod
+    def video_thread(self):
+        self.th_run = True
+        while self.th_run:
+            _, img_bgr = self.cam.read()  # 读取照片
+            self.imgtk = self.get_imgtk(img_bgr)
+            self.video_weight.configure(image=self.imgtk, width=600, height=480)
 
-def mainui():
-    window = tk.Tk()
-    window.title("recognition")
-    window.resizable(0, 0)
-    app = Application(master=window)
-    app.mainloop()
+def on_closing():
+    print("destroy")
+    if app.th_run:
+        app.th_run = False
+        app.th.join(1)
+    window.destroy()
 
 
 if __name__ == '__main__':
-    main()
+    window = tk.Tk()
+    window.title("recognition")
+    window.resizable(0, 0)
+    app = Application(window)
+    window.protocol("WM_DELETE_WINDOW", on_closing)
+    app.mainloop()
