@@ -7,7 +7,7 @@ from PIL import Image
 path = r'./trainer'
 
 # 人脸数据训练
-def training():
+def training(self):
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     detector = cv2.CascadeClassifier("./data/haarcascade_frontalface_default.xml")
 
@@ -19,7 +19,7 @@ def training():
             PIL_img = Image.open(imagePath).convert('L')
             img_numpy = np.array(PIL_img, 'uint8')
             id = int(os.path.split(imagePath)[-1].split(".")[1])
-            print(id)
+            self.log(id)
             faces = detector.detectMultiScale(img_numpy)
             for (x, y, w, h) in faces:
                 faceSamples.append(img_numpy[y:y + h, x:x + w])
@@ -29,4 +29,4 @@ def training():
     faces, ids = getImagesAndLabels('./dataset')
     recognizer.train(faces, np.array(ids))
     recognizer.save('./trainer/trainer.yml')
-    print("数据训练完毕！")
+    self.log("数据训练完毕！")

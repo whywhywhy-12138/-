@@ -8,8 +8,19 @@ from PIL import Image, ImageTk
 
 from reco import recognition
 from colllect import collect
+from delFile import del_file
 
 lk = threading.Lock()
+
+def setCenter(window,w=0,h=0):
+    ws = window.winfo_screenwidth()  #获取屏幕宽度（单位：像素）
+    hs = window.winfo_screenheight()  #获取屏幕高度（单位：像素）
+    if (w==0  or  h==0):
+        w = window.winfo_width()   #获取窗口宽度（单位：像素）
+        h = window.winfo_height()  #获取窗口高度（单位：像素）
+    x = int( (ws/2) - (w/2) )
+    y = int( (hs/2) - (h/2) )
+    window.geometry('{}x{}+{}+{}'.format(w, h, x, y))
 
 def video_thread(self):
     self.th_run = True
@@ -39,47 +50,57 @@ class Application(ttk.Frame):
 
     def create_weight(self):
         self.video_weight = tk.Label(self,
-                                     width=80,
-                                     height=25,
+                                     bd=1,
                                      bg='gray')
-        self.video_weight.pack(side="left")
+        self.video_weight.pack(side="left",fill='x')
 
         self.frame_weight = tk.LabelFrame(self)
-        self.frame_weight.pack()
+        self.frame_weight.pack(padx=8,pady=8)
 
         self.collect_weight = tk.Button(self.frame_weight,
                                         text='搜集人脸',
                                         width='10',
                                         command=self.create_input_win)
-        self.collect_weight.grid(column=0, row=1, padx=8, pady=4)
+        self.collect_weight.pack(pady=2)
 
         self.train_weight = tk.Button(self.frame_weight,
                                       text='人脸训练',
                                       width='10',
                                       command=self.video_display)
-        self.train_weight.grid(column=0, row=2, padx=8, pady=4)
+        self.train_weight.pack(pady=2)
 
         self.recog_weight = tk.Button(self.frame_weight,
                                       text='人脸识别',
                                       width='10',
                                       command=self.reco_th)
-        self.recog_weight.grid(column=0, row=3, padx=8, pady=4)
+        self.recog_weight.pack(pady=2)
 
         self.del_weight = tk.Button(self.frame_weight,
                                     text='删除数据',
-                                    width='10')
-        self.del_weight.grid(column=0, row=4, padx=8, pady=4)
+                                    width='10',
+                                    command=lambda :del_file('./dataset',self))
+        self.del_weight.pack(pady=2)
 
         self.quit_weight = tk.Button(self.frame_weight,
                                      text='退出程序',
-                                     width='10')
-        self.quit_weight.grid(column=0, row=5, padx=8, pady=4)
+                                     width='10',command=on_closing)
+        self.quit_weight.pack(pady=2)
 
-        self.log_text = tk.Text(self.frame_weight, width='10', height='17')
-        self.log_text.grid(column=0, row=6, ipadx=8, pady=4, ipady=4)
+        self.log_frame=tk.LabelFrame(self.frame_weight,text='日志框')
+        self.log_frame.pack(fill='y')
+
+        self.log_bar=tk.Scrollbar(self.log_frame)
+        self.log_bar.pack(side='right',fill="y")
+
+        self.log_text = tk.Text(self.log_frame, height='15',width=25,spacing1=5,yscrollcommand=self.log_bar.set)
+        self.log_text.pack(fill='y')
+
+        self.log_bar.config(command=self.log_text.yview)
+
 
     def create_input_win(self):
         self.input_win = tk.Toplevel(self)
+        setCenter(self.input_win,300,80)
 
         self.frame_left = tk.Frame(self.input_win)
         self.frame_left.grid(row=0, column=0, padx=5, pady=10)
@@ -147,6 +168,11 @@ class Application(ttk.Frame):
         self.re_th.start()
         self.th_run = True
 
+
+    def log(self,string):
+        self.log_text.insert('end',str(string)+'\n')
+        self.log_text.see('end')
+
 def on_closing():
     print("destroy")
     '''if app.th_run:
@@ -161,4 +187,5 @@ if __name__ == '__main__':
     window.resizable(0, 0)
     app = Application(window)
     window.protocol("WM_DELETE_WINDOW", on_closing)
+    setCenter(window,800,500)
     app.mainloop()

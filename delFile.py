@@ -1,6 +1,6 @@
 import os
 
-def del_file(path):
+def del_file(path,self):
     ls = os.listdir(path)
     for i in ls:
         c_path = os.path.join(path,i)
@@ -8,4 +8,4 @@ def del_file(path):
             del_file(c_path)
         else:
             os.remove(c_path)
-    print("数据删除格式化完毕!!!")
+    self.log("数据删除格式化完毕!!!")

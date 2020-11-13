@@ -1,6 +1,5 @@
 import cv2
-
-
+from training import training
 # 人脸数据采集
 def collect(self):
         count = 0
@@ -16,4 +15,5 @@ def collect(self):
                 cv2.imwrite("./dataset/User." + str(face_id) + '.' + str(count) + ".jpg", gray[y:y + h, x:x + w])
             if count > 60:
                 break
-        print('收集完成')
+        self.log('收集完成')
+        training(self)
