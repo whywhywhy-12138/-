@@ -9,8 +9,7 @@ from PIL import Image, ImageTk
 from reco import recognition
 from colllect import collect
 from delFile import del_file
-
-lk = threading.Lock()
+from datamoudle import faceData
 
 def setCenter(window,w=0,h=0):
     ws = window.winfo_screenwidth()  #获取屏幕宽度（单位：像素）
@@ -112,7 +111,7 @@ class Application(ttk.Frame):
                                 text='编号')
         self.bianhao.grid(row=0, column=0)
 
-        self.input_bianhao = tk.Entry(self.frame_left)
+        self.input_bianhao = tk.Label(self.frame_left,text=faces.id_MAX()+1)
         self.input_bianhao.grid(row=0, column=1)
 
         self.name = tk.Label(self.frame_left,
@@ -157,13 +156,19 @@ class Application(ttk.Frame):
         self.th_run = True
 
     def collect_th(self):
-        self.co_th = threading.Thread(target=collect, args=(self,))
+        name=self.input_name.get()
+        if name =='':
+            self.log('请输入name')
+            return
+        faces.face_insert(name)
+        id=faces.id_MAX()
+        self.co_th = threading.Thread(target=collect, args=(self,id,))
         self.co_th.setDaemon(True)
         self.co_th.start()
         self.th_run = True
 
     def reco_th(self):
-        self.re_th = threading.Thread(target=recognition, args=(self,))
+        self.re_th = threading.Thread(target=recognition, args=(self,faces,))
         self.re_th.setDaemon(True)
         self.re_th.start()
         self.th_run = True
@@ -182,6 +187,7 @@ def on_closing():
 
 
 if __name__ == '__main__':
+    faces=faceData()
     window = tk.Tk()
     window.title("recognition")
     window.resizable(0, 0)

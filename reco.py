@@ -1,7 +1,7 @@
 import cv2
 
 # 人脸识别
-def recognition(self):
+def recognition(self,facesid):
         recognizer = cv2.face.LBPHFaceRecognizer_create()
         recognizer.read('./trainer/trainer.yml')
         cascadePath = "./data/haarcascade_frontalface_default.xml"
@@ -17,8 +17,8 @@ def recognition(self):
             for (x, y, w, h) in faces:
                 cv2.rectangle(im, (x - 20, y - 20), (x + w + 20, y + h + 20), (0, 255, 0), 4)
                 Id, conf = recognizer.predict(gray[y:y + h, x:x + w])
-                if conf < 100:
-                    pass
+                if conf <100:
+                    Id=facesid.face_get(Id)
                 else:
                     Id = "Unknow"
                 cv2.rectangle(im, (x - 22, y - 90), (x + w + 22, y - 22), (0, 255, 0), -1)

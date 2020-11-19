@@ -1,10 +1,10 @@
 import cv2
 from training import training
 # 人脸数据采集
-def collect(self):
+def collect(self,id):
         count = 0
         face_detector = cv2.CascadeClassifier('./data/haarcascade_frontalface_default.xml')
-        face_id=1
+        face_id=id
         while True:
             _, img = self.cam.read()
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
